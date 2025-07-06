@@ -1,0 +1,706 @@
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Wallet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    /* Scrollbar for the list */
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: #374151; /* Tailwind slate-700 */
+      border-radius: 3px;
+    }
+    /* Modal backdrop */
+    #modal-backdrop,
+    #order-backdrop,
+    #welcome-backdrop {
+      background-color: rgba(15, 20, 25, 0.85);
+    }
+    nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      z-index: 100;
+    }
+    main {
+      padding-bottom: 56px; /* Height of nav */
+    }
+  </style>
+</head>
+<body class="bg-[#0f1419] text-white font-sans min-h-screen flex flex-col">
+  <main class="flex-grow overflow-auto scrollbar-thin">
+    <section class="p-4 max-w-md mx-auto" id="main-section">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="font-extrabold text-white text-[15px] leading-tight">
+          MI WALLET
+        </h1>
+        <div class="flex items-center space-x-3 select-none">
+          <div class="text-white text-sm font-semibold bg-[#1f2937] rounded px-3 py-1">
+            Saldo: $<span id="balance">0.00</span>
+          </div>
+          <button id="withdraw-btn" class="bg-red-600 hover:bg-red-700 transition text-white font-semibold px-3 py-1 rounded text-sm">
+            Retirar fondos
+          </button>
+        </div>
+      </div>
+      <div class="space-y-4" id="stocks-container">
+        <!-- Stock items injected here -->
+      </div>
+      <div class="space-y-4 hidden" id="news-container">
+        <!-- News items injected here -->
+      </div>
+    </section>
+  </main>
+  <nav
+    class="bg-[#0f1419] border-t border-gray-800 flex justify-around items-center py-2 text-white text-[13px] font-extrabold"
+  >
+    <button id="btn-inicio" class="flex flex-col items-center text-white">
+      <i class="fas fa-home text-lg"></i>
+      <span class="mt-1">Inicio</span>
+    </button>
+    <button id="btn-noticias" class="flex flex-col items-center text-white">
+      <i class="fas fa-newspaper text-lg"></i>
+      <span class="mt-1">Noticias</span>
+    </button>
+    <button id="btn-cuenta" class="flex flex-col items-center text-white">
+      <i class="fas fa-user text-lg"></i>
+      <span class="mt-1">Cuenta</span>
+    </button>
+  </nav>
+
+  <!-- Modal Login -->
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div id="modal-backdrop" class="absolute inset-0"></div>
+    <div
+      class="relative bg-[#111827] rounded-lg p-6 w-11/12 max-w-sm shadow-lg"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <h2 id="modal-title" class="text-white text-xl font-extrabold mb-4 text-center">
+        Iniciar Sesión
+      </h2>
+      <form id="login-form" class="space-y-4" novalidate>
+        <div>
+          <label for="email" class="block text-white text-sm font-semibold mb-1">Correo electrónico</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            class="w-full rounded-md bg-[#1f2937] border border-gray-600 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="usuario@ejemplo.com"
+          />
+          <p id="email-error" class="text-red-500 text-xs mt-1 hidden">Correo inválido</p>
+        </div>
+        <div>
+          <label for="password" class="block text-white text-sm font-semibold mb-1">Contraseña</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            class="w-full rounded-md bg-[#1f2937] border border-gray-600 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="••••••••"
+          />
+          <p id="password-error" class="text-red-500 text-xs mt-1 hidden">Contraseña inválida</p>
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-red-600 text-white font-extrabold py-2 rounded-md hover:bg-red-700 transition"
+        >
+          Entrar
+        </button>
+      </form>
+      <button
+        id="close-modal"
+        aria-label="Cerrar"
+        class="absolute top-3 right-3 text-gray-400 hover:text-white focus:outline-none"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+      <p id="welcome-message" class="mt-4 text-center text-red-600 font-extrabold text-lg hidden">
+        ¡Bienvenido!
+      </p>
+    </div>
+  </div>
+
+  <!-- Modal Welcome Balance -->
+  <div id="welcome-balance-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div id="welcome-backdrop" class="absolute inset-0"></div>
+    <div
+      class="relative bg-[#111827] rounded-lg p-6 w-11/12 max-w-sm shadow-lg text-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-balance-title"
+    >
+      <h2 id="welcome-balance-title" class="text-white text-xl font-extrabold mb-4">
+        Bienvenido a Mi Wallet
+      </h2>
+      <p class="text-white text-lg mb-2">Saldo actual:</p>
+      <p class="text-[#ef4444] font-extrabold text-3xl mb-4" id="welcome-balance-amount">$0.00</p>
+      <p class="text-white text-lg mb-6">Poder de compra disponible:</p>
+      <p class="text-[#ef4444] font-extrabold text-3xl" id="welcome-buying-power">$0.00</p>
+      <button
+        id="close-welcome-balance"
+        class="mt-6 bg-red-600 hover:bg-red-700 transition text-white font-extrabold py-2 px-6 rounded"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Order -->
+  <div id="order-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div id="order-backdrop" class="absolute inset-0"></div>
+    <div
+      class="relative bg-[#111827] rounded-lg p-6 w-11/12 max-w-md shadow-lg max-h-[90vh] overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="order-title"
+    >
+      <h2 id="order-title" class="text-white text-xl font-extrabold mb-4 text-center">
+        Orden de Compra
+      </h2>
+      <div id="order-content" class="text-white text-sm space-y-3 mb-4">
+        <!-- Company info and indicators injected here -->
+      </div>
+      <form id="order-form" class="space-y-4">
+        <div>
+          <label for="quantity" class="block text-white text-sm font-semibold mb-1">Cantidad de acciones</label>
+          <input
+            type="number"
+            id="quantity"
+            name="quantity"
+            min="1"
+            value="1"
+            required
+            class="w-full rounded-md bg-[#1f2937] border border-gray-600 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full bg-red-600 text-white font-extrabold py-2 rounded-md hover:bg-red-700 transition"
+        >
+          Comprar
+        </button>
+      </form>
+      <button
+        id="close-order-modal"
+        aria-label="Cerrar"
+        class="absolute top-3 right-3 text-gray-400 hover:text-white focus:outline-none"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Animation Overlay -->
+  <div id="animation-overlay" class="hidden fixed inset-0 bg-[rgba(15,20,25,0.85)] flex justify-center items-center z-[9999]">
+    <div class="spinner border-4 border-white border-t-red-600 rounded-full w-12 h-12 animate-spin"></div>
+  </div>
+
+  <script>
+    // Extended stocks and cryptos data with indicators
+    const stocks = [
+      {
+        symbol: "AAPL",
+        name: "Apple Inc.",
+        price: 175.43,
+        change: 0.85,
+        post: -0.12,
+        description: "Apple Inc. diseña, fabrica y comercializa dispositivos electrónicos, software y servicios en todo el mundo.",
+        indicators: { RSI: 55, MACD: 1.2, SMA50: 172.5, SMA200: 165.3, volume: 35000000 },
+      },
+      {
+        symbol: "MSFT",
+        name: "Microsoft Corporation",
+        price: 315.22,
+        change: -0.45,
+        post: 0.05,
+        description: "Microsoft desarrolla, licencia y soporta software, servicios y dispositivos a nivel global.",
+        indicators: { RSI: 48, MACD: -0.8, SMA50: 310.1, SMA200: 300.7, volume: 28000000 },
+      },
+      {
+        symbol: "GOOGL",
+        name: "Alphabet Inc.",
+        price: 132.15,
+        change: 1.12,
+        post: 0.20,
+        description: "Alphabet es la empresa matriz de Google, especializada en servicios y productos relacionados con internet.",
+        indicators: { RSI: 60, MACD: 0.9, SMA50: 130.2, SMA200: 125.8, volume: 2200000 },
+      },
+      {
+        symbol: "AMZN",
+        name: "Amazon.com, Inc.",
+        price: 135.67,
+        change: -0.78,
+        post: -0.10,
+        description: "Amazon es una empresa de comercio electrónico y servicios en la nube con presencia global.",
+        indicators: { RSI: 42, MACD: -1.1, SMA50: 138.4, SMA200: 140.0, volume: 4500000 },
+      },
+      {
+        symbol: "TSLA",
+        name: "Tesla, Inc.",
+        price: 260.89,
+        change: 2.34,
+        post: 0.50,
+        description: "Tesla diseña, fabrica y vende vehículos eléctricos y soluciones de energía renovable.",
+        indicators: { RSI: 65, MACD: 2.5, SMA50: 255.0, SMA200: 240.3, volume: 18000000 },
+      },
+      {
+        symbol: "NVDA",
+        name: "NVIDIA Corporation",
+        price: 410.55,
+        change: 3.12,
+        post: 0.75,
+        description: "NVIDIA desarrolla unidades de procesamiento gráfico y tecnologías para computación avanzada.",
+        indicators: { RSI: 70, MACD: 3.0, SMA50: 400.0, SMA200: 380.5, volume: 12000000 },
+      },
+      {
+        symbol: "META",
+        name: "Meta Platforms, Inc.",
+        price: 220.33,
+        change: -1.05,
+        post: -0.20,
+        description: "Meta es una empresa de tecnología enfocada en redes sociales y el metaverso.",
+        indicators: { RSI: 45, MACD: -1.5, SMA50: 225.0, SMA200: 210.0, volume: 9000000 },
+      },
+      {
+        symbol: "BTC-USD",
+        name: "Bitcoin USD",
+        price: 90000.00,
+        change: 2.23,
+        post: 0.10,
+        description: "Bitcoin es la criptomoneda más conocida y utilizada a nivel mundial.",
+        indicators: { RSI: 58, MACD: 1.8, SMA50: 88000, SMA200: 85000, volume: 35000 },
+      },
+      {
+        symbol: "ETH-USD",
+        name: "Ethereum USD",
+        price: 1800.50,
+        change: 1.75,
+        post: 0.05,
+        description: "Ethereum es una plataforma descentralizada que habilita contratos inteligentes y aplicaciones descentralizadas.",
+        indicators: { RSI: 62, MACD: 1.2, SMA50: 1750, SMA200: 1600, volume: 25000 },
+      },
+      {
+        symbol: "BNB-USD",
+        name: "Binance Coin",
+        price: 320.10,
+        change: -0.85,
+        post: -0.10,
+        description: "Binance Coin es la criptomoneda nativa del exchange Binance.",
+        indicators: { RSI: 40, MACD: -0.9, SMA50: 330, SMA200: 310, volume: 15000 },
+      },
+      {
+        symbol: "XRP-USD",
+        name: "Ripple",
+        price: 0.75,
+        change: 0.50,
+        post: 0.02,
+        description: "Ripple es una criptomoneda enfocada en pagos y transferencias internacionales rápidas.",
+        indicators: { RSI: 55, MACD: 0.5, SMA50: 0.72, SMA200: 0.68, volume: 5000000 },
+      },
+      {
+        symbol: "DOGE-USD",
+        name: "Dogecoin",
+        price: 0.065,
+        change: -0.10,
+        post: -0.01,
+        description: "Dogecoin es una criptomoneda creada como una broma pero con gran comunidad y uso.",
+        indicators: { RSI: 48, MACD: -0.3, SMA50: 0.07, SMA200: 0.06, volume: 3000000 },
+      },
+      {
+        symbol: "NFLX",
+        name: "Netflix, Inc.",
+        price: 400.12,
+        change: 0.75,
+        post: 0.05,
+        description: "Netflix es una plataforma líder de streaming de video a nivel mundial.",
+        indicators: { RSI: 52, MACD: 0.7, SMA50: 395.0, SMA200: 380.0, volume: 6000000 },
+      },
+      {
+        symbol: "DIS",
+        name: "The Walt Disney Company",
+        price: 110.45,
+        change: -0.25,
+        post: 0.02,
+        description: "Disney es una empresa global de entretenimiento y medios de comunicación.",
+        indicators: { RSI: 47, MACD: -0.4, SMA50: 112.0, SMA200: 108.5, volume: 7000000 },
+      },
+      {
+        symbol: "PYPL",
+        name: "PayPal Holdings, Inc.",
+        price: 75.30,
+        change: 1.10,
+        post: 0.10,
+        description: "PayPal ofrece servicios de pagos digitales y transferencias de dinero.",
+        indicators: { RSI: 58, MACD: 1.1, SMA50: 73.5, SMA200: 70.0, volume: 5000000 },
+      },
+      {
+        symbol: "INTC",
+        name: "Intel Corporation",
+        price: 50.25,
+        change: -0.60,
+        post: -0.05,
+        description: "Intel diseña y fabrica semiconductores y microprocesadores.",
+        indicators: { RSI: 43, MACD: -0.7, SMA50: 51.0, SMA200: 48.0, volume: 8000000 },
+      },
+      {
+        symbol: "CSCO",
+        name: "Cisco Systems, Inc.",
+        price: 55.80,
+        change: 0.30,
+        post: 0.01,
+        description: "Cisco es líder en soluciones de redes y telecomunicaciones.",
+        indicators: { RSI: 50, MACD: 0.3, SMA50: 54.5, SMA200: 53.0, volume: 4000000 },
+      },
+    ];
+
+    // User balance and buying power
+    let balance = 0;
+    let buyingPower = 0;
+
+    // Format price with commas and 2 decimals
+    function formatPrice(num) {
+      if (num < 1) return num.toFixed(5);
+      return num.toLocaleString("es-ES", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    // Format percentage with sign and 2 decimals
+    function formatPercent(num) {
+      return (num > 0 ? "+" : "") + num.toFixed(2) + " %";
+    }
+
+    // Format large numbers with commas
+    function formatNumber(num) {
+      return num.toLocaleString("es-ES");
+    }
+
+    // Update balance display
+    function updateBalanceDisplay() {
+      document.getElementById("balance").textContent = formatPrice(balance);
+    }
+
+    // Create stock item HTML with clickable container
+    function createStockItem(stock) {
+      const changeBg =
+        stock.change >= 0 ? "bg-[#ef4444] text-white" : "bg-[#14b8a6] text-black";
+
+      return `
+        <div tabindex="0" role="button" aria-pressed="false" class="flex items-center justify-between border-b border-gray-800 pb-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-600" id="stock-${stock.symbol}" data-symbol="${stock.symbol}">
+          <div class="flex-1 pr-3">
+            <p class="font-extrabold text-white text-[15px] leading-tight">${stock.symbol}</p>
+            <p class="text-white text-[13px] leading-tight truncate max-w-[140px]">${stock.name}</p>
+          </div>
+          <div class="text-right min-w-[80px]">
+            <p class="font-extrabold text-white text-[15px] leading-tight price">${formatPrice(stock.price)}</p>
+            <p class="inline-block rounded px-2 py-0.5 text-[13px] font-semibold change ${changeBg}">${formatPercent(stock.change)}</p>
+            <p class="text-white text-[13px] leading-tight post">Post: ${formatPercent(stock.post)}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render stocks
+    const stocksContainer = document.getElementById("stocks-container");
+    stocksContainer.innerHTML = stocks.map(createStockItem).join("");
+
+    // Update the DOM for a stock
+    function updateStockDOM(stock) {
+      const stockDiv = document.getElementById(`stock-${stock.symbol}`);
+      if (!stockDiv) return;
+
+      const priceEl = stockDiv.querySelector(".price");
+      const changeEl = stockDiv.querySelector(".change");
+      const postEl = stockDiv.querySelector(".post");
+
+      priceEl.textContent = formatPrice(stock.price);
+      changeEl.textContent = formatPercent(stock.change);
+      postEl.textContent = `Post: ${formatPercent(stock.post)}`;
+
+      if (stock.change >= 0) {
+        changeEl.classList.remove("bg-[#14b8a6]", "text-black");
+        changeEl.classList.add("bg-[#ef4444]", "text-white");
+      } else {
+        changeEl.classList.remove("bg-[#ef4444]", "text-white");
+        changeEl.classList.add("bg-[#14b8a6]", "text-black");
+      }
+    }
+
+    // Simulate price changes every 3 seconds
+    function simulatePriceChanges() {
+      stocks.forEach((stock) => {
+        const changePercent = (Math.random() - 0.5) / 100;
+        stock.price = stock.price * (1 + changePercent);
+        stock.change = stock.change + changePercent * 100;
+        if (stock.change > 5) stock.change = 5;
+        if (stock.change < -5) stock.change = -5;
+        stock.post = stock.post + (Math.random() * 0.2 - 0.1);
+        if (stock.post > 5) stock.post = 5;
+        if (stock.post < -5) stock.post = -5;
+        updateStockDOM(stock);
+      });
+    }
+    setInterval(simulatePriceChanges, 3000);
+
+    // Modal login logic
+    const modal = document.getElementById("modal");
+    const btnCuenta = document.getElementById("btn-cuenta");
+    const btnClose = document.getElementById("close-modal");
+    const loginForm = document.getElementById("login-form");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const emailError = document.getElementById("email-error");
+    const passwordError = document.getElementById("password-error");
+    const welcomeMessage = document.getElementById("welcome-message");
+
+    // Welcome balance modal elements
+    const welcomeBalanceModal = document.getElementById("welcome-balance-modal");
+    const welcomeBalanceAmount = document.getElementById("welcome-balance-amount");
+    const welcomeBuyingPower = document.getElementById("welcome-buying-power");
+    const closeWelcomeBalanceBtn = document.getElementById("close-welcome-balance");
+
+    btnCuenta.addEventListener("click", () => {
+      welcomeMessage.classList.add("hidden");
+      emailError.classList.add("hidden");
+      passwordError.classList.add("hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      loginForm.reset();
+    });
+
+    btnClose.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      loginForm.reset();
+      welcomeMessage.classList.add("hidden");
+      emailError.classList.add("hidden");
+      passwordError.classList.add("hidden");
+    });
+
+    document.getElementById("modal-backdrop").addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      loginForm.reset();
+      welcomeMessage.classList.add("hidden");
+      emailError.classList.add("hidden");
+      passwordError.classList.add("hidden");
+    });
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      emailError.classList.add("hidden");
+      passwordError.classList.add("hidden");
+      welcomeMessage.classList.add("hidden");
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      let valid = true;
+
+      if (email !== "pruebawallet@gmail.com") {
+        emailError.classList.remove("hidden");
+        valid = false;
+      }
+      if (password !== "12345") {
+        passwordError.classList.remove("hidden");
+        valid = false;
+      }
+
+      if (valid) {
+        welcomeMessage.classList.remove("hidden");
+        loginForm.style.display = "none";
+
+        // Initialize balance and buying power on login
+        balance = 0;
+        buyingPower = 10000; // Example buying power
+        updateBalanceDisplay();
+
+        setTimeout(() => {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+          loginForm.style.display = "block";
+          loginForm.reset();
+          welcomeMessage.classList.add("hidden");
+
+          // Show welcome balance modal
+          welcomeBalanceAmount.textContent = formatPrice(balance);
+          welcomeBuyingPower.textContent = formatPrice(buyingPower);
+          welcomeBalanceModal.classList.remove("hidden");
+          welcomeBalanceModal.classList.add("flex");
+        }, 2000);
+      }
+    });
+
+    closeWelcomeBalanceBtn.addEventListener("click", () => {
+      welcomeBalanceModal.classList.add("hidden");
+      welcomeBalanceModal.classList.remove("flex");
+    });
+
+    // Order modal elements
+    const orderModal = document.getElementById("order-modal");
+    const orderBackdrop = document.getElementById("order-backdrop");
+    const orderContent = document.getElementById("order-content");
+    const orderForm = document.getElementById("order-form");
+    const closeOrderModalBtn = document.getElementById("close-order-modal");
+
+    // Animation overlay
+    const animationOverlay = document.createElement("div");
+    animationOverlay.id = "animation-overlay";
+    animationOverlay.className = "hidden fixed inset-0 bg-[rgba(15,20,25,0.85)] flex justify-center items-center z-[9999]";
+    animationOverlay.innerHTML = `<div class="spinner border-4 border-white border-t-red-600 rounded-full w-12 h-12 animate-spin"></div>`;
+    document.body.appendChild(animationOverlay);
+
+    // Open order modal with stock info and indicators
+    function openOrderModal(stock) {
+      orderContent.innerHTML = `
+        <p><strong>Empresa:</strong> ${stock.name} (${stock.symbol})</p>
+        <p><strong>Precio actual:</strong> $${formatPrice(stock.price)}</p>
+        <p class="mt-2 text-gray-300 text-sm">${stock.description}</p>
+        <hr class="my-3 border-gray-700" />
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div><strong>RSI:</strong> ${stock.indicators.RSI}</div>
+          <div><strong>MACD:</strong> ${stock.indicators.MACD.toFixed(2)}</div>
+          <div><strong>SMA 50:</strong> $${formatPrice(stock.indicators.SMA50)}</div>
+          <div><strong>SMA 200:</strong> $${formatPrice(stock.indicators.SMA200)}</div>
+          <div class="col-span-2"><strong>Volumen:</strong> ${formatNumber(stock.indicators.volume)}</div>
+        </div>
+      `;
+      orderForm.reset();
+      orderModal.classList.remove("hidden");
+      orderModal.classList.add("flex");
+    }
+
+    // Close order modal
+    function closeOrderModal() {
+      orderModal.classList.add("hidden");
+      orderModal.classList.remove("flex");
+    }
+
+    closeOrderModalBtn.addEventListener("click", closeOrderModal);
+    orderBackdrop.addEventListener("click", closeOrderModal);
+
+    // Handle order form submit with animation and balance update
+    orderForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const quantity = orderForm.quantity.value;
+      if (quantity && quantity > 0) {
+        animationOverlay.classList.remove("hidden");
+        orderForm.querySelector("button[type=submit]").disabled = true;
+
+        setTimeout(() => {
+          const stockSymbol = orderContent.querySelector("p strong").nextSibling.textContent.trim().match(/\(([^)]+)\)/)[1];
+          const stock = stocks.find(s => s.symbol === stockSymbol);
+          if (stock) {
+            const totalCost = stock.price * quantity;
+            balance += totalCost;
+            updateBalanceDisplay();
+            alert(`Orden de compra enviada:\nCantidad: ${quantity} acción(es)\nCosto total: $${formatPrice(totalCost)}\nNuevo saldo: $${formatPrice(balance)}`);
+          } else {
+            alert("Error: acción no encontrada.");
+          }
+          animationOverlay.classList.add("hidden");
+          orderForm.querySelector("button[type=submit]").disabled = false;
+          closeOrderModal();
+        }, 1500);
+      } else {
+        alert("Por favor, ingresa una cantidad válida.");
+      }
+    });
+
+    // Add click event to each stock item to open order modal
+    stocksContainer.addEventListener("click", (e) => {
+      let target = e.target;
+      while (target && !target.id?.startsWith("stock-")) {
+        target = target.parentElement;
+      }
+      if (target && target.id?.startsWith("stock-")) {
+        const symbol = target.getAttribute("data-symbol");
+        const stock = stocks.find((s) => s.symbol === symbol);
+        if (stock) {
+          openOrderModal(stock);
+        }
+      }
+    });
+
+    // Withdraw button logic
+    const withdrawBtn = document.getElementById("withdraw-btn");
+    withdrawBtn.addEventListener("click", () => {
+      if (balance <= 0) {
+        alert("No tienes saldo para retirar.");
+        return;
+      }
+      const amountStr = prompt(`Tu saldo es $${formatPrice(balance)}. Ingresa la cantidad a retirar:`, "0");
+      if (amountStr === null) return; // Cancelado
+      const amount = parseFloat(amountStr);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Cantidad inválida.");
+        return;
+      }
+      if (amount > balance) {
+        alert("No puedes retirar más que tu saldo.");
+        return;
+      }
+      balance -= amount;
+      updateBalanceDisplay();
+      alert(`Has retirado $${formatPrice(amount)}.\nSaldo restante: $${formatPrice(balance)}.`);
+    });
+
+    // Navigation buttons logic
+    const btnInicio = document.getElementById("btn-inicio");
+    const btnNoticias = document.getElementById("btn-noticias");
+    const stocksSection = document.getElementById("stocks-container");
+    const newsSection = document.getElementById("news-container");
+    const mainTitle = document.getElementById("main-title");
+
+    btnInicio.addEventListener("click", () => {
+      mainTitle.textContent = "MI WALLET";
+      stocksSection.classList.remove("hidden");
+      newsSection.classList.add("hidden");
+      setActiveButton(btnInicio);
+    });
+
+    btnNoticias.addEventListener("click", () => {
+      mainTitle.textContent = "NOTICIAS DIARIAS DE CRIPTOS Y ACCIONES";
+      stocksSection.classList.add("hidden");
+      newsSection.classList.remove("hidden");
+      setActiveButton(btnNoticias);
+    });
+
+    btnCuenta.addEventListener("click", () => {
+      setActiveButton(btnCuenta);
+    });
+
+    // Active button styling: red text
+    function setActiveButton(activeBtn) {
+      [btnInicio, btnNoticias, btnCuenta].forEach((btn) => {
+        if (btn === activeBtn) {
+          btn.classList.remove("text-white");
+          btn.classList.add("text-red-600");
+        } else {
+          btn.classList.remove("text-red-600");
+          btn.classList.add("text-white");
+        }
+      });
+    }
+
+    // Initialize active button
+    setActiveButton(btnInicio);
+
+    // Initialize balance display
+    updateBalanceDisplay();
+  </script>
+</body>
+</html>
